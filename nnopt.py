@@ -45,6 +45,11 @@ class NeuralNetwork:
         self.modifyDataOutputs(df)
         self.data = self.sortDataByOutput(df)
 
+        # Populate validation data
+        self.modifyDataOutputs(df_validation)
+        self.validation_data_in = df_validation.to_numpy()[:, :N_INPUTS]
+        self.validation_data_out = df_validation.to_numpy()[:, N_INPUTS:]
+
         self.layer_sizes = (N_INPUTS) + layer_sizes + (len(self.data))
 
         # Set up variables
@@ -61,8 +66,14 @@ class NeuralNetwork:
         self.train = trainer
         self.init = tf.global_variables_initializer()
 
+        # Measures of accuracy
+        self.percent_correct = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(self.logits, 1), tf.argmax(self.Y, 1)), "float"))
+
 
     def train(self, epochs=20):
+
+        loss_history = []
+        validation_history = []
 
         with tf.Session() as sess:
             sess.run(self.init)
@@ -71,24 +82,32 @@ class NeuralNetwork:
 
                 total_cost = 0.0
                 num_batches = 0
+
                 for batch_in, batch_out in iter(TrainingBatches(self, 16)):
                     _, cost = sess.run([self.train, self.loss], feed_dict={X: batch_in, Y: batch_out})
                     total_cost += cost
                     num_batches += 1
 
-                print("Epoch {}: cost = {}".format(epoch, total_cost / num_batches))
+                loss_history.append(total_cost / num_batches)
 
-                if epoch % 10 == 0:
+                # Run validation data
+                if epoch % 10 == 9:
+                     validation_history.append(self.percent_correct.eval({
+                        self.X: self.validation_data_in,
+                        self.Y: self.validation_data_out}))
 
-                    validation_data = 
+        return loss_history, validation_history
 
         
     def multilayerPerceptron(self):
         
         def outputOfLayer(n, func):
             if n == 0:
+                print("Layer 0: input")
                 return self.X
             else:
+                print("Layer {}: {}(([Layer {}] * W{}) + b{})".format(
+                    n-1, "sigmoid" if func == tf.keras.activations.sigmoid else "softmax", n, n-1, n-1))
                 lastLayer = outputOfLayer(n-1, tf.keras.activations.sigmoid)
                 arith = tf.add(tf.matmul(lastLayer, self.weights[n-1]), self.biases[n-1])
                 return func(arith)
