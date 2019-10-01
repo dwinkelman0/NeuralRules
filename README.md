@@ -11,14 +11,10 @@ Using Tensorflow with a GPU requires extra care during Docker installation. Spec
 
 For creating (and then restarting) a Docker image, use:
 
-    ```
     sudo docker run --runtime=nvidia -it -p 8888:8888 tensorflow/tensorflow:latest-gpu-jupyter /bin/bash
     sudo docker ps -a
     sudo docker start -i <image-name>
-    ```
 
 Within the Docker image, the following command is used to initiate the Jupyter server:
 
-    ```
     bash -c 'source /etc/bash.bashrc && jupyter notebook --notebook-dir=/tf --ip 0.0.0.0 --no-browser --allow-root'
-    ```
